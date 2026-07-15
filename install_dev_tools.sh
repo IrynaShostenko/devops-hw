@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
-# Зупинити скрипт, якщо команда завершилася помилкою
-set -e
+# Зупинити скрипт, якщо:
+# - команда завершилася помилкою
+# - використана неоголошена змінна
+# - сталася помилка в pipeline
+set -euo pipefail
 
 DJANGO_VENV="$HOME/.venvs/dev-tools"
 
@@ -22,27 +25,34 @@ else
 
     . /etc/os-release
 
-    if [[ "$ID" != "ubuntu" && "$ID" != "debian" ]]
+    DISTRO_ID="${ID:-}"
+    DOCKER_CODENAME="${UBUNTU_CODENAME:-${VERSION_CODENAME:-}}"
+
+    if [[ "$DISTRO_ID" != "ubuntu" && "$DISTRO_ID" != "debian" ]]
     then
         echo "This script supports only Ubuntu and Debian."
         exit 1
     fi
 
-    DOCKER_CODENAME="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+    if [[ -z "$DOCKER_CODENAME" ]]
+    then
+        echo "Cannot detect distribution codename."
+        exit 1
+    fi
 
     sudo apt update
     sudo apt install -y ca-certificates curl
 
     sudo install -m 0755 -d /etc/apt/keyrings
 
-    sudo curl -fsSL "https://download.docker.com/linux/$ID/gpg" \
+    sudo curl -fsSL "https://download.docker.com/linux/$DISTRO_ID/gpg" \
         -o /etc/apt/keyrings/docker.asc
 
     sudo chmod a+r /etc/apt/keyrings/docker.asc
 
     sudo tee /etc/apt/sources.list.d/docker.sources >/dev/null <<EOF
 Types: deb
-URIs: https://download.docker.com/linux/$ID
+URIs: https://download.docker.com/linux/$DISTRO_ID
 Suites: $DOCKER_CODENAME
 Components: stable
 Architectures: $(dpkg --print-architecture)
@@ -126,7 +136,6 @@ fi
 
 # ---------- venv ----------
 
-
 echo
 echo "Checking venv..."
 
@@ -155,8 +164,10 @@ then
 else
     echo "Installing Django in virtual environment..."
 
-    if [[ ! -x "$DJANGO_VENV/bin/python" ]]
+    if [[ ! -x "$DJANGO_VENV/bin/python" ]] || \
+       ! "$DJANGO_VENV/bin/python" -m pip --version >/dev/null 2>&1
     then
+        rm -rf "$DJANGO_VENV"
         mkdir -p "$(dirname "$DJANGO_VENV")"
         python3 -m venv "$DJANGO_VENV"
     fi
