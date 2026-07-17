@@ -1,3 +1,21 @@
+variable "aws_region" {
+  description = "AWS region where resources will be created"
+  type        = string
+  default     = "us-west-2"
+}
+
+variable "bucket_name" {
+  description = "Name of the S3 bucket for Terraform state"
+  type        = string
+  default     = "iryna-devops-tf-state-559292737982"
+}
+
+variable "table_name" {
+  description = "Name of the DynamoDB table for Terraform state locking"
+  type        = string
+  default     = "terraform-locks"
+}
+
 variable "vpc_cidr_block" {
   description = "CIDR block for the VPC"
   type        = string
@@ -26,4 +44,16 @@ variable "vpc_name" {
   description = "Name prefix for VPC resources"
   type        = string
   default     = "lesson-5-vpc"
+}
+
+variable "ecr_name" {
+  description = "Name of the ECR repository"
+  type        = string
+  default     = "lesson-5-ecr"
+}
+
+variable "scan_on_push" {
+  description = "Enable image scanning on push for ECR"
+  type        = bool
+  default     = true
 }
