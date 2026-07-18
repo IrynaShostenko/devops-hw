@@ -1,0 +1,31 @@
+controller:
+  serviceType: LoadBalancer
+
+  admin:
+    username: admin
+    password: admin123456
+
+  installPlugins:
+    - kubernetes
+    - workflow-aggregator
+    - git
+    - credentials
+    - credentials-binding
+    - configuration-as-code
+    - pipeline-stage-view
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+persistence:
+  enabled: true
+  storageClass: jenkins-gp3
+  size: 8Gi
+
+agent:
+  enabled: true

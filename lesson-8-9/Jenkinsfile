@@ -1,0 +1,129 @@
+pipeline {
+  agent {
+    kubernetes {
+      defaultContainer 'git'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  restartPolicy: Never
+  containers:
+    - name: git
+      image: alpine/git:2.45.2
+      command:
+        - cat
+      tty: true
+
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:v1.23.2-debug
+      command:
+        - /busybox/cat
+      tty: true
+"""
+    }
+  }
+
+  environment {
+    AWS_REGION     = 'us-west-2'
+    AWS_ACCOUNT_ID = '559292737982'
+    ECR_REGISTRY   = '559292737982.dkr.ecr.us-west-2.amazonaws.com'
+    ECR_REPOSITORY = 'lesson-8-9-ecr'
+
+    DOCKER_CONTEXT = 'docker/django'
+    DOCKERFILE     = 'docker/django/Dockerfile'
+
+    GITOPS_REPO_HOST = 'github.com'
+    GITOPS_REPO_PATH = 'IrynaShostenko/devops-hw.git'
+
+    // For this homework branch. In a real GitOps repository this can be "main".
+    GITOPS_BRANCH     = 'lesson-8-9'
+    HELM_VALUES_FILE  = 'lesson-8-9/charts/django-app/values.yaml'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Prepare image tag') {
+      steps {
+        container('git') {
+          script {
+            def shortCommit = sh(
+              script: 'git rev-parse --short HEAD',
+              returnStdout: true
+            ).trim()
+
+            env.IMAGE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
+
+            echo "Image tag: ${env.IMAGE_TAG}"
+          }
+        }
+      }
+    }
+
+    stage('Build and push Docker image to ECR') {
+      steps {
+        container('kaniko') {
+          withCredentials([
+            string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+            string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+          ]) {
+            sh '''
+              /kaniko/executor \
+                --context "${WORKSPACE}/${DOCKER_CONTEXT}" \
+                --dockerfile "${WORKSPACE}/${DOCKERFILE}" \
+                --destination "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+                --cache=true \
+                --snapshot-mode=redo
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Update Helm values.yaml') {
+      steps {
+        container('git') {
+          withCredentials([
+            usernamePassword(
+              credentialsId: 'github-token',
+              usernameVariable: 'GIT_USERNAME',
+              passwordVariable: 'GIT_TOKEN'
+            )
+          ]) {
+            sh '''
+              rm -rf /tmp/gitops-repo
+
+              git clone https://${GIT_USERNAME}:${GIT_TOKEN}@${GITOPS_REPO_HOST}/${GITOPS_REPO_PATH} /tmp/gitops-repo
+
+              cd /tmp/gitops-repo
+              git checkout ${GITOPS_BRANCH}
+
+              sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" ${HELM_VALUES_FILE}
+
+              git config user.email "jenkins@example.com"
+              git config user.name "jenkins-ci"
+
+              git add ${HELM_VALUES_FILE}
+              git commit -m "Update Django image tag to ${IMAGE_TAG}" || echo "No changes to commit"
+              git push origin HEAD:${GITOPS_BRANCH}
+            '''
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "Pipeline completed successfully. Argo CD will sync the updated Helm chart from Git."
+    }
+
+    failure {
+      echo "Pipeline failed. Check Jenkins console output."
+    }
+  }
+}
