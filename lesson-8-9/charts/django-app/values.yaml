@@ -38,11 +38,11 @@ resources:
 
 probes:
   readiness:
-    path: /
+    path: /admin/
     initialDelaySeconds: 10
     periodSeconds: 5
   liveness:
-    path: /
+    path: /admin/
     initialDelaySeconds: 30
     periodSeconds: 10
 
