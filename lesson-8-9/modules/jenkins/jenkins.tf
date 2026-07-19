@@ -23,7 +23,9 @@ resource "helm_release" "jenkins" {
   timeout          = 900
 
   values = [
-    file("${path.module}/values.yaml")
+    templatefile("${path.module}/values.yaml", {
+      jenkins_admin_password = var.admin_password
+    })
   ]
 
   depends_on = [

@@ -193,9 +193,11 @@ Jenkins module creates:
 Jenkins admin credentials for this homework environment:
 
     Username: admin
-    Password: admin123456
+    Password: provided through Terraform sensitive variable jenkins_admin_password
 
-In production, credentials must not be stored in Terraform code.
+Jenkins admin password is not stored in Git.
+It is provided through the Terraform sensitive variable jenkins_admin_password.
+For local Terraform plan/apply, pass it as TF_VAR_jenkins_admin_password.
 
 ## Jenkins credentials
 

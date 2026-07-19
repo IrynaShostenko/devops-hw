@@ -65,6 +65,8 @@ module "eks" {
 module "jenkins" {
   source = "./modules/jenkins"
 
+  admin_password = var.jenkins_admin_password
+
   depends_on = [
     module.eks
   ]

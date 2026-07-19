@@ -23,8 +23,7 @@ variable "admin_username" {
 }
 
 variable "admin_password" {
-  description = "Jenkins admin password for homework environment"
+  description = "Jenkins admin password"
   type        = string
-  default     = "admin123456"
   sensitive   = true
 }

@@ -7,18 +7,37 @@ apiVersion: v1
 kind: Pod
 spec:
   restartPolicy: Never
+  volumes:
+    - name: docker-config
+      emptyDir: {}
   containers:
     - name: git
       image: alpine/git:2.45.2
       command:
         - cat
       tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
+
+    - name: aws-cli
+      image: amazon/aws-cli:latest
+      command:
+        - sleep
+        - infinity
+      tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
 
     - name: kaniko
       image: gcr.io/kaniko-project/executor:v1.23.2-debug
       command:
         - /busybox/cat
       tty: true
+      volumeMounts:
+        - name: docker-config
+          mountPath: /kaniko/.docker
 """
     }
   }
@@ -29,15 +48,13 @@ spec:
     ECR_REGISTRY   = '559292737982.dkr.ecr.us-west-2.amazonaws.com'
     ECR_REPOSITORY = 'lesson-8-9-ecr'
 
-    DOCKER_CONTEXT = 'docker/django'
-    DOCKERFILE     = 'docker/django/Dockerfile'
+    DOCKER_CONTEXT = 'lesson-8-9/docker/django'
+    DOCKERFILE     = 'lesson-8-9/docker/django/Dockerfile'
 
     GITOPS_REPO_HOST = 'github.com'
     GITOPS_REPO_PATH = 'IrynaShostenko/devops-hw.git'
-
-    // For this homework branch. In a real GitOps repository this can be "main".
-    GITOPS_BRANCH     = 'lesson-8-9'
-    HELM_VALUES_FILE  = 'lesson-8-9/charts/django-app/values.yaml'
+    GITOPS_BRANCH    = 'lesson-8-9'
+    HELM_VALUES_FILE = 'lesson-8-9/charts/django-app/values.yaml'
   }
 
   stages {
@@ -64,22 +81,41 @@ spec:
       }
     }
 
-    stage('Build and push Docker image to ECR') {
+    stage('Configure ECR auth') {
       steps {
-        container('kaniko') {
+        container('aws-cli') {
           withCredentials([
             string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
             string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
           ]) {
             sh '''
-              /kaniko/executor \
-                --context "${WORKSPACE}/${DOCKER_CONTEXT}" \
-                --dockerfile "${WORKSPACE}/${DOCKERFILE}" \
-                --destination "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
-                --cache=true \
-                --snapshot-mode=redo
+              mkdir -p /kaniko/.docker
+
+              PASSWORD=$(aws ecr get-login-password --region ${AWS_REGION})
+              AUTH=$(printf "AWS:%s" "$PASSWORD" | base64 | tr -d '\\n')
+
+              cat > /kaniko/.docker/config.json <<EOF_CONFIG
+{"auths":{"${ECR_REGISTRY}":{"auth":"${AUTH}"}}}
+EOF_CONFIG
+
+              echo "ECR authentication configured for Kaniko"
             '''
           }
+        }
+      }
+    }
+
+    stage('Build and push Docker image to ECR') {
+      steps {
+        container('kaniko') {
+          sh '''
+            /kaniko/executor \
+              --context "${WORKSPACE}/${DOCKER_CONTEXT}" \
+              --dockerfile "${WORKSPACE}/${DOCKERFILE}" \
+              --destination "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
+              --cache=true \
+              --snapshot-mode=redo
+          '''
         }
       }
     }
@@ -118,6 +154,10 @@ spec:
   }
 
   post {
+    always {
+      cleanWs()
+    }
+
     success {
       echo "Pipeline completed successfully. Argo CD will sync the updated Helm chart from Git."
     }
