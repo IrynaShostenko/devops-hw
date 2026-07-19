@@ -14,3 +14,17 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Archives
+*.zip

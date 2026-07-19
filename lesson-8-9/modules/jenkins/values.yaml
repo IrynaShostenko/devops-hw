@@ -3,7 +3,7 @@ controller:
 
   admin:
     username: admin
-    password: admin123456
+    password: "${jenkins_admin_password}"
 
   installPlugins:
     - kubernetes
@@ -13,6 +13,7 @@ controller:
     - credentials-binding
     - configuration-as-code
     - pipeline-stage-view
+    - ws-cleanup
 
   resources:
     requests:

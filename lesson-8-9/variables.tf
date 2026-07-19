@@ -93,3 +93,9 @@ variable "eks_max_size" {
   type        = number
   default     = 3
 }
+
+variable "jenkins_admin_password" {
+  description = "Jenkins admin password"
+  type        = string
+  sensitive   = true
+}
