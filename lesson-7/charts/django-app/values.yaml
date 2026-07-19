@@ -11,17 +11,16 @@ service:
   targetPort: 8000
 
 config:
-  POSTGRES_DB: goit_db
-  POSTGRES_USER: goit_user
-  POSTGRES_PASSWORD: goit_password
-  POSTGRES_HOST: db
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  POSTGRES_DB: "goit_db"
+  POSTGRES_USER: "goit_user"
+  POSTGRES_HOST: "db"
   POSTGRES_PORT: "5432"
 
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 6
-  targetCPUUtilizationPercentage: 70
+secret:
+  SECRET_KEY: "change-me-in-production"
+  POSTGRES_PASSWORD: "change-me-in-production"
 
 resources:
   requests:
@@ -30,3 +29,19 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+
+probes:
+  readiness:
+    path: /
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  liveness:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 20
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70

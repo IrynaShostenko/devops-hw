@@ -1,18 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Chart.Name }}
+  name: django-app
   labels:
-    app: {{ .Chart.Name }}
+    app: django-app
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
+  {{- end }}
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}
+      app: django-app
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}
+        app: django-app
     spec:
       containers:
         - name: django
@@ -20,9 +22,27 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.targetPort }}
+
           envFrom:
             - configMapRef:
-                name: {{ .Chart.Name }}-config
+                name: django-app-config
+            - secretRef:
+                name: django-app-secret
+
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
