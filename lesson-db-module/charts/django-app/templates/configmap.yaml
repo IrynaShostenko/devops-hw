@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-config
+data:
+  DEBUG: {{ .Values.config.DEBUG | default "False" | quote }}
+  ALLOWED_HOSTS: {{ .Values.config.ALLOWED_HOSTS | default "*" | quote }}

@@ -1,0 +1,53 @@
+replicaCount: 2
+
+image:
+  repository: 559292737982.dkr.ecr.us-west-2.amazonaws.com/lesson-8-9-ecr
+  tag: 5-e1403a0
+  pullPolicy: Always
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+config:
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+
+secret:
+  SECRET_KEY: "change-me-in-production"
+  POSTGRES_DB: "goit_db"
+  POSTGRES_USER: "goit_user"
+  POSTGRES_PASSWORD: "change-me-in-production"
+  POSTGRES_HOST: "db"
+  POSTGRES_PORT: "5432"
+
+database:
+  enabled: true
+  image: postgres:14
+  serviceName: db
+  port: 5432
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  readiness:
+    path: /admin/
+    initialDelaySeconds: 10
+    periodSeconds: 5
+  liveness:
+    path: /admin/
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
