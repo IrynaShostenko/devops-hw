@@ -65,21 +65,23 @@ spec:
     }
 
     stage('Prepare image tag') {
-      steps {
-        container('git') {
-          script {
-            def shortCommit = sh(
-              script: 'git rev-parse --short HEAD',
-              returnStdout: true
-            ).trim()
+  steps {
+    container('git') {
+      script {
+        sh 'git config --global --add safe.directory "${WORKSPACE}"'
 
-            env.IMAGE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
+        def shortCommit = sh(
+          script: 'git rev-parse --short HEAD',
+          returnStdout: true
+        ).trim()
 
-            echo "Image tag: ${env.IMAGE_TAG}"
-          }
-        }
+        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
+
+        echo "Image tag: ${env.IMAGE_TAG}"
       }
     }
+  }
+}
 
     stage('Configure ECR auth') {
       steps {
@@ -131,12 +133,13 @@ EOF_CONFIG
             )
           ]) {
             sh '''
-              rm -rf /tmp/gitops-repo
+            rm -rf /tmp/gitops-repo
 
-              git clone https://${GIT_USERNAME}:${GIT_TOKEN}@${GITOPS_REPO_HOST}/${GITOPS_REPO_PATH} /tmp/gitops-repo
+            git clone https://${GIT_USERNAME}:${GIT_TOKEN}@${GITOPS_REPO_HOST}/${GITOPS_REPO_PATH} /tmp/gitops-repo
 
-              cd /tmp/gitops-repo
-              git checkout ${GITOPS_BRANCH}
+            cd /tmp/gitops-repo
+            git config --global --add safe.directory /tmp/gitops-repo
+            git checkout ${GITOPS_BRANCH}
 
               sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" ${HELM_VALUES_FILE}
 
