@@ -65,23 +65,23 @@ spec:
     }
 
     stage('Prepare image tag') {
-  steps {
-    container('git') {
-      script {
-        sh 'git config --global --add safe.directory "${WORKSPACE}"'
+      steps {
+        container('git') {
+          script {
+            sh 'git config --global --add safe.directory "${WORKSPACE}"'
 
-        def shortCommit = sh(
-          script: 'git rev-parse --short HEAD',
-          returnStdout: true
-        ).trim()
+            def shortCommit = sh(
+              script: 'git rev-parse --short HEAD',
+              returnStdout: true
+            ).trim()
 
-        env.IMAGE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
+            env.IMAGE_TAG = "${env.BUILD_NUMBER}-${shortCommit}"
 
-        echo "Image tag: ${env.IMAGE_TAG}"
+            echo "Image tag: ${env.IMAGE_TAG}"
+          }
+        }
       }
     }
-  }
-}
 
     stage('Configure ECR auth') {
       steps {
@@ -91,6 +91,8 @@ spec:
             string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
           ]) {
             sh '''
+              set +x
+
               mkdir -p /kaniko/.docker
 
               PASSWORD=$(aws ecr get-login-password --region ${AWS_REGION})
@@ -100,6 +102,7 @@ spec:
 {"auths":{"${ECR_REGISTRY}":{"auth":"${AUTH}"}}}
 EOF_CONFIG
 
+              set -x
               echo "ECR authentication configured for Kaniko"
             '''
           }
@@ -115,7 +118,7 @@ EOF_CONFIG
               --context "${WORKSPACE}/${DOCKER_CONTEXT}" \
               --dockerfile "${WORKSPACE}/${DOCKERFILE}" \
               --destination "${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}" \
-              --cache=true \
+              --cache=false \
               --snapshot-mode=redo
           '''
         }
@@ -133,13 +136,13 @@ EOF_CONFIG
             )
           ]) {
             sh '''
-            rm -rf /tmp/gitops-repo
+              rm -rf /tmp/gitops-repo
 
-            git clone https://${GIT_USERNAME}:${GIT_TOKEN}@${GITOPS_REPO_HOST}/${GITOPS_REPO_PATH} /tmp/gitops-repo
+              git clone https://${GIT_USERNAME}:${GIT_TOKEN}@${GITOPS_REPO_HOST}/${GITOPS_REPO_PATH} /tmp/gitops-repo
 
-            cd /tmp/gitops-repo
-            git config --global --add safe.directory /tmp/gitops-repo
-            git checkout ${GITOPS_BRANCH}
+              cd /tmp/gitops-repo
+              git config --global --add safe.directory /tmp/gitops-repo
+              git checkout -B ${GITOPS_BRANCH} origin/${GITOPS_BRANCH}
 
               sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" ${HELM_VALUES_FILE}
 
