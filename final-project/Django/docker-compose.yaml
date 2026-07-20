@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:14
+    container_name: final-project-postgres
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: dbadmin
+      POSTGRES_PASSWORD: localpassword
+    ports:
+      - "5432:5432"
+
+  django:
+    build: .
+    container_name: final-project-django
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: local-dev-secret-key
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+      POSTGRES_DB: appdb
+      POSTGRES_USER: dbadmin
+      POSTGRES_PASSWORD: localpassword
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"

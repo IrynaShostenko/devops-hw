@@ -1,0 +1,9 @@
+terraform {
+  backend "s3" {
+    bucket         = "iryna-devops-tf-state-559292737982"
+    key            = "final-project/terraform.tfstate"
+    region         = "us-west-2"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
