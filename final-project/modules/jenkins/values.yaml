@@ -1,5 +1,5 @@
 controller:
-  serviceType: LoadBalancer
+  serviceType: ClusterIP
 
   admin:
     username: admin

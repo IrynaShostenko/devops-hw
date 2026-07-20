@@ -79,7 +79,7 @@ variable "eks_node_instance_types" {
 variable "eks_desired_size" {
   description = "Desired number of EKS worker nodes"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "eks_min_size" {
@@ -138,7 +138,7 @@ variable "rds_engine" {
 variable "rds_engine_version" {
   description = "Database engine version."
   type        = string
-  default     = "15.5"
+  default     = "15.18"
 }
 
 variable "rds_parameter_group_family" {
@@ -222,7 +222,7 @@ variable "rds_publicly_accessible" {
 variable "rds_backup_retention_period" {
   description = "Backup retention period in days."
   type        = number
-  default     = 7
+  default     = 0
 }
 
 variable "rds_deletion_protection" {
