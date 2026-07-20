@@ -624,7 +624,7 @@ Submit:
 
 2. ZIP archive:
 
-       final_DevOps_Iryna_Shostenko.zip
+       devops-hw-final-project_Shosstenko.zip
 
 3. Ready-to-run Terraform code.
 
