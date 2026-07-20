@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: 559292737982.dkr.ecr.us-west-2.amazonaws.com/final-project-ecr
-  tag: 5-e1403a0
+  tag: 3-b575e5d
   pullPolicy: Always
 
 service:
